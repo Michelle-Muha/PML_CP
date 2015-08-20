@@ -1,0 +1,42 @@
+---
+title: "PML_CP2"
+author: "Michelle Muha"
+date: "August 16, 2015"
+output: html_document
+---
+
+#Introduction
+This project builds a machine learning algorithm to predict if an exercise has been preformed correctly based on quantitiative data provided from on-body sensors.
+
+#Cleaning The Dataset
+The raw dataset contained many columns with only NA values. These columns were removed. Additionally the columns containing the time of the measurements and the study participants names were also removed, as these values are not relvant to the prediction. Finally, the rows containing incomplete sets of measurements were removed. 
+```{r}
+library(caret)
+set.seed(12)
+testing <- read.csv("pml-testing.csv")
+training <- read.csv("pml-training.csv")
+logic <- sapply(testing, function(x)all(is.na(x)))
+index <- which(logic == FALSE)
+train1<-training[training$new_window == "no",]
+train2<-train1[index]
+train3<-train2[,8:60]
+```
+
+#Training the Algorithm 
+In order to test the performance of the algorithm, 25% of the training set was reserved for testing. The model was fit using a random forest model and 3-fold cross validation.
+```{r}
+inTrain <- createDataPartition(y=train3$classe,p=0.75, list=FALSE)
+trainb <- train3[inTrain,]
+testb <- train3[-inTrain,]
+fitControl <- trainControl(## 3-fold CV
+  method = "cv", 
+  number = 3,
+  repeats = 1)
+modFit3 <- train(classe~ .,data=trainb,method="rf",prox=TRUE, trControl = fitControl)
+```
+
+#Testing the Algorithm
+The algorithm was tested on the reserved part of the training set.  We estimate that the Accuracy of the algorithm is 99.2% and the Out of Sample Error rate is 0.8%
+```{r}
+confusionMatrix(testb$classe, predict(modFit3,testb))
+```
